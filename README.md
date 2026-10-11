@@ -49,7 +49,7 @@ Workers Builds nustatymai:
 | --- | --- |
 | Production branch | `main` |
 | Root directory | `/` (saugyklos šaknis) |
-| Build command | `npm run check && git rev-parse HEAD` |
+| Build command | `BUILD_COMMIT="$(git rev-parse --verify HEAD)" && WORKERS_CI_COMMIT_SHA="$BUILD_COMMIT" npm run check && git rev-parse HEAD` |
 | Deploy command | `npx wrangler deploy` |
 | Node.js | `NODE_VERSION=22.23.2` |
 
@@ -67,9 +67,18 @@ Rankinis `npm run deploy` publikuoja jau sukurtą `dist/`, todėl prieš jį bū
 
 ## Build tapatybė
 
-`dist/build-info.json` turi tik lauką `commit`: Workers Builds pateiktą
-`WORKERS_CI_COMMIT_SHA`, o kai jis nepateiktas arba yra tiksliai tuščia eilutė
-(`''`, kaip gali būti Deploy Hook build), tikrą `git rev-parse --verify HEAD` rezultatą.
+Stebėtame Deploy Hook build testas su paveldėta CI aplinka nepraėjo
+`WORKERS_CI_COMMIT_SHA` SHA validacijos. Tiksli netinkama aplinkos reikšmė
+nenustatyta: tuščias įrašo `metadata.commit_hash` neįrodo tuščio aplinkos kintamojo.
+Todėl aukščiau nurodyta build komanda pirmiausia gauna tikrą checkout Git HEAD
+ir perduoda jį kaip `WORKERS_CI_COMMIT_SHA` visam `npm run check`, pakeisdama
+nepatikimus tiekėjo CI SHA duomenis. Nepavykus gauti Git HEAD, `&&` sustabdo
+komandą dar prieš testus ir build. Automatinio publikavimo įrodymas nustatomas
+pagal žemiau pateiktą patikros procedūrą.
+
+`dist/build-info.json` turi tik lauką `commit`. Metaduomenų pagalbinė funkcija
+naudoja `WORKERS_CI_COMMIT_SHA`, o kai jis nepateiktas arba yra tiksliai tuščia
+eilutė (`''`), tikrą `git rev-parse --verify HEAD` rezultatą.
 Iki pirmo commit arba šaltinių archyve be Git naudojama reikšmė `local`.
 Netuščias CI SHA turi būti tiksliai 40 mažųjų šešioliktainių simbolių; bet kuri
 netinkama netuščia reikšmė (įskaitant tarpus ar naujos eilutės simbolį) nutraukia
@@ -85,9 +94,11 @@ Automatinio diegimo patikros procedūra:
 2. Patikrinkite būtent GitHub `push` (ne pradinio `ping`) webhook pristatymo
    sėkmę ir atsakymo `build_uuid` susiekite su Workers Builds įrašu.
 3. Patikrinkite to įrašo šaltinį `deploy_hook`, šaką `main`, sėkmingus testus,
-   build ir publikavimą. Build komandos pabaigos `git rev-parse HEAD` loge
-   išveda tikrą checkout SHA po sėkmingo `npm run check`; jis turi sutapti su
-   įkelto commit SHA. Deploy Hook įrašo `metadata.commit_hash` gali likti tuščias,
+   build ir publikavimą. Naudokite visą lentelėje pateiktą build komandą: ji
+   pirmiausia fiksuoja checkout SHA ir juo pakeičia CI SHA testams bei build.
+   Tik po sėkmingo `npm run check` galinis `git rev-parse HEAD` išveda checkout
+   SHA į logą; jis turi sutapti su įkelto commit SHA. Deploy Hook įrašo
+   `metadata.commit_hash` gali likti tuščias,
    todėl vien šiuo lauku negalima remtis kaip šaltinių tapatybės įrodymu.
 4. Perskaitykite viešą `/build-info.json`: jame turi būti tik `commit`, sutampantis
    su įkelto commit ir build loge patvirtintu checkout SHA. Atskirai patikrinkite,
