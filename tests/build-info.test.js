@@ -13,6 +13,13 @@ test('uses Git HEAD when Workers Builds has not supplied a commit', () => {
   );
 });
 
+test('uses Git HEAD when Workers Builds supplies an exactly empty commit', () => {
+  assert.equal(
+    getBuildCommit({ env: { WORKERS_CI_COMMIT_SHA: '' }, readGitCommit: () => `${gitCommit}\n` }),
+    gitCommit,
+  );
+});
+
 test('uses the full commit SHA supplied by Workers Builds', () => {
   assert.equal(
     getBuildCommit({
@@ -35,7 +42,10 @@ test('never publishes malformed Git command output', () => {
 });
 
 test('rejects malformed CI metadata instead of publishing arbitrary values', () => {
-  for (const value of ['', 'not-a-commit', `${ciCommit}\n`, 'a'.repeat(64)]) {
+  for (const value of [
+    ' ', '\t', '\n', 'not-a-commit', `${ciCommit}\n`, ciCommit.toUpperCase(),
+    'a'.repeat(39), 'a'.repeat(41), 'a'.repeat(64), null, false, 0, {}, [],
+  ]) {
     assert.throws(
       () => getBuildCommit({ env: { WORKERS_CI_COMMIT_SHA: value } }),
       { message: 'WORKERS_CI_COMMIT_SHA must be a full 40-character Git SHA.' },

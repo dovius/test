@@ -8,7 +8,7 @@ export function getBuildCommit({
   }),
 } = {}) {
   const ciCommit = env.WORKERS_CI_COMMIT_SHA;
-  if (ciCommit !== undefined) {
+  if (ciCommit !== undefined && ciCommit !== '') {
     if (typeof ciCommit !== 'string' || ciCommit.length !== 40 || !/^[0-9a-f]{40}$/.test(ciCommit)) {
       throw new Error('WORKERS_CI_COMMIT_SHA must be a full 40-character Git SHA.');
     }
