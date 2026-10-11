@@ -21,27 +21,27 @@ npm run check       # testai ir production build
 npm run deploy:dry-run  # tik vietinė Wrangler patikra, nieko nepublikuoja
 ```
 
-## Numatytas publikavimas
+## Publikavimas ir CI
 
 - Vieša svetainė: `https://test.vild.lt`.
-- Šaltinių saugykla turi būti **privati**: `dovius/test`.
+- Šaltinių saugykla `dovius/test` yra **vieša** aiškiu savininko sprendimu.
+- Viešuose šaltiniuose nėra vykdymui reikalingų API raktų ar paslapčių; svetainė neturi serverio API.
 - Cloudflare Worker: `test-vild`; statiniai failai imami tik iš `dist/`.
 - `wrangler.jsonc` aprašo paskyrą, custom domain ir konfigūraciją; jame nėra kredencialų.
-- Nėra GitHub Actions workflow. Naudojama numatyta Cloudflare Workers Builds Git integracija.
+- Nėra GitHub Actions workflow. Cloudflare Workers Builds Git integracija sukonfigūruota.
 
-Saugyklos sukūrimas, domeno prijungimas ir Workers Builds įjungimas atliekami
-atskirai. Vien šie vietiniai failai **neįrodo**, kad diegimas jau sukonfigūruotas.
-Numatyti Workers Builds nustatymai:
+Sukonfigūruoti Workers Builds nustatymai pateikti žemiau. Integracijos konfigūracija
+dar **neįrodo**, kad visas kelias nuo `push` iki viešai paskelbto commit veikia.
 
 | Nustatymas | Reikšmė |
 | --- | --- |
 | Production branch | `main` |
-| Root directory | saugyklos šaknis |
+| Root directory | `/` (saugyklos šaknis) |
 | Build command | `npm run check` |
-| Deploy command | `npm run deploy` (lokalus `wrangler deploy`) |
-| Node.js | `22.23.2`, nustatoma `.nvmrc` arba `NODE_VERSION` |
+| Deploy command | `npx wrangler deploy` |
+| Node.js | `NODE_VERSION=22.23.2` |
 
-Įjungus integraciją, kiekvienas `push` į `main` turi pradėti naują testavimą,
+Sukonfigūruota integracija po kiekvieno `push` į `main` turi pradėti naują testavimą,
 build ir publikavimą. Prisijungimo duomenys tvarkomi Cloudflare, ne saugykloje.
 Rankinis `npm run deploy` publikuoja jau sukurtą `dist/`, todėl prieš jį būtinas
 `npm run check`. Diegimui būtina atskira autentikacija ir leidimas.
@@ -56,8 +56,9 @@ Metaduomenyse nėra laiko žymų, el. pašto, saugyklos URL ar paslapčių.
 `/build-info.json` nėra rodomas puslapyje, o `_headers` išjungia jo cache.
 Vietinis nešvarus darbinis medis gali skirtis nuo HEAD: įrodymui kurkite po commit.
 
-Automatiką reikia patvirtinti tikru antru `push` į `main`, sėkmingu Workers Builds
-įrašu ir viešo `/build-info.json` `commit` sutapimu su antru commit.
+Automatinio diegimo patikra dar nebaigta: ją reikia patvirtinti tikru `push`
+į `main`, sėkmingu Workers Builds įrašu ir viešo `/build-info.json` `commit`
+sutapimu su įkelto commit SHA.
 
 ## Oficialūs šaltiniai
 
